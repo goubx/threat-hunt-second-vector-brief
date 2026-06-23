@@ -1,4 +1,4 @@
-# Threat Hunt 08: Second Vector
+# Threat Hunt 08: Second Vector (ONGOING)
 
 > Cloud-native identity compromise → internal spearphishing → silent exfiltration
 

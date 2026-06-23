@@ -465,220 +465,209 @@ OfficeActivity
 ![Flag 25 - Credential store enumeration](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%2025.png)
 
 ---
+# The Plant and the Trigger 
 
 #### 🏁 Flag 26 - Disprove the Innocent Explanation
 
-- **Answer:** ``
-- **Discovery:** 
+- **Answer:** `0`
+- **Discovery:** Upon looking at the victim's username and the malicious IP, I found that all of the login attempts were from first form authentication, and the MFA was never used. 
 
 ```kql
-
+SigninLogs
+| where UserPrincipalName =~ "m.smith@lognpacific.org"
+| where IPAddress == "103.69.224.136"
+| where ResultType == 0
+| mv-expand AuthDetail = parse_json(AuthenticationDetails)
+| extend StepResult = tostring(AuthDetail.authenticationStepResultDetail),
+         Method = tostring(AuthDetail.authenticationMethod),
+         Succeeded = tostring(AuthDetail.succeeded)
+| project TimeGenerated, Method, StepResult, Succeeded
+| sort by TimeGenerated asc
 ```
 
 [image]
 
 ---
 
-#### 🏁 Flag 27
+#### 🏁 Flag 27 - Catch the Plant
 
-- **Answer:** ``
-- **Discovery:** 
+I'm going to take a look at the apps touched during the session, im looking for one that deals with automations.
+
+- **Answer:** `Microsoft Flow Portal`
+- **Discovery:** Upon searching the signinlogs and looking at the apps used during the session, it appears the attacker used 'Microsoft Flow Portal', which is used to create automations.
 
 ```kql
+SigninLogs
+| where UserPrincipalName =~ "m.smith@lognpacific.org"
+| where IPAddress == "103.69.224.136"
+| distinct AppDisplayName, AppId
+| sort by AppDisplayName asc
+```
 
+[image]
+
+---
+IR LEAD: "The forward's in the mail logs. No rule made it, user wasn't online. Find the table that records what actually fired it."
+
+Format: the full table name as it appears in the workspace
+
+#### 🏁 Flag 28 - The Cause Behind the Forward
+
+- **Answer:** `MicrosoftGraphActivityLogs`
+- **Discovery:** If no rule was created, and the user wasn't online upon the time that the forwarded email was sent, it can only lead me to believe that an API triggered the call that can only be found the through the Microsoft Graph Activity logs.
+
+```kql
+MicrosoftGraphActivityLogs
+```
+---
+
+#### 🏁 Flag 29 - Prove It With the Sequence
+
+IR LEAD: "That forward is recorded twice, an API call and a mail event. Put them in order and tell me which came first."
+
+Format: name the record that came first (the Graph call, or the mail event)
+
+- **Answer:** `the Graph call`
+- **Discovery:** For the email to get sent, the API has to get called, or else the event won't get caused.
+
+```kql
+MicrosoftGraphActivityLogs
+```
+
+---
+# Correlation & Containment
+
+Since the forward didn't come from the attacker's IP address or the user's machine, I need to find the IP it was sent from.
+
+#### 🏁 Flag 30 - The Automation Source IP
+
+- **Answer:** `20.150.129.194`
+- **Discovery:** I need to search the graph activity logs and search for any request URI that has any instance of forwarding or sending emails. I was able to find only one instance of this happening at 2026-06-11T12:41:09.1296387Z, which corresponds to when the email was forwarded.
+
+```kql
+MicrosoftGraphActivityLogs
+| where RequestUri has_any ("forward", "sendmail")
+```
+
+[image]
+
+---
+I need to find the app that signed the forward call.
+
+#### 🏁 Flag 31 - The Automation Identity
+
+- **Answer:** `7ab7862c-4c57-491e-8a45-d52a7e023983`
+- **Discovery:** After looking over the MicrosoftGraphActivityLogs, I was able to find the app ID that made the API call. It appears the app is Microsoft Flow.
+
+```kql
+MicrosoftGraphActivityLogs
+| where RequestUri has_any ("forward", "sendmail")
+| project UserAgent, AppId
 ```
 
 [image]
 
 ---
 
-#### 🏁 Flag 28
+#### 🏁 Flag 32 - Name the Abused Service
 
-- **Answer:** ``
-- **Discovery:** 
+- **Answer:** `Microsoft Power Automate`
+- **Discovery:** The forward was fired by a Microsoft Power Automate flow (workflow 89a996b4a5ce4cde938ab27e21018d0f, AppId 7ab7862c-4c57-491e-8a45-d52a7e023983) making POST /v1.0/me/messages/{id}/forward to Graph from Azure IP 20.150.129.194, establishing server-side persistence that operates independent of the victim's sessions.
 
 ```kql
+MicrosoftGraphActivityLogs
+| where RequestUri has_any ("forward", "sendmail")
+```
 
+---
+
+#### 🏁 Flag 33 - One Actor, Every Source 
+
+- **Answer:** `7`
+- **Discovery:** IP 103.69.224.136 appears literally in 7 of 8 in-scope tables across 10-20 June 2026, spanning sign-in, audit, cloud app, mailbox, Graph, mail flow, and identity logon telemetry, which corroborates a single actor across the full 
+Identity and collaboration stack.
+
+```kql
+let TargetIP = "103.69.224.136";
+let WindowStart = datetime(2026-06-10T00:00:00Z);
+let WindowEnd = datetime(2026-06-20T23:59:59Z);
+union 
+(SigninLogs 
+    | where TimeGenerated between (WindowStart .. WindowEnd) 
+    | where IPAddress == TargetIP 
+    | extend Source = "SigninLogs"),
+(AuditLogs 
+    | where TimeGenerated between (WindowStart .. WindowEnd) 
+    | where tostring(InitiatedBy) has TargetIP 
+    | extend Source = "AuditLogs"),
+(CloudAppEvents 
+    | where Timestamp between (WindowStart .. WindowEnd) 
+    | where IPAddress == TargetIP 
+    | extend Source = "CloudAppEvents"),
+(OfficeActivity 
+    | where TimeGenerated between (WindowStart .. WindowEnd) 
+    | where ClientIP has TargetIP 
+    | extend Source = "OfficeActivity"),
+(MicrosoftGraphActivityLogs 
+    | where TimeGenerated between (WindowStart .. WindowEnd) 
+    | where IPAddress == TargetIP 
+    | extend Source = "MicrosoftGraphActivityLogs"),
+(EmailEvents 
+    | where Timestamp between (WindowStart .. WindowEnd) 
+    | where SenderIPv4 == TargetIP or tostring(AuthenticationDetails) has TargetIP 
+    | extend Source = "EmailEvents"),
+(IdentityLogonEvents 
+    | where Timestamp between (WindowStart .. WindowEnd) 
+    | where IPAddress == TargetIP 
+    | extend Source = "IdentityLogonEvents"),
+(BehaviorAnalytics 
+    | where TimeGenerated between (WindowStart .. WindowEnd) 
+    | where SourceIPAddress == TargetIP 
+    | extend Source = "BehaviorAnalytics")
+| distinct Source
+| count
 ```
 
 [image]
 
 ---
+IR LEAD: "Before you delete a rule or a flow, one action comes first or they're straight back in. What is it."
 
-#### 🏁 Flag 29
+Format: a short action phrase, a verb plus what it acts on
 
-- **Answer:** ``
-- **Discovery:** 
+#### 🏁 Flag 34 - Containment Ordering
 
-```kql
-
-```
-
-[image]
+- **Answer:** `Revoke the user's sessions and refresh tokens.`
+- **Discovery:** Revoke the user's sessions and refresh tokens before removing the rules or flow, otherwise the attacker re-authenticates with the stolen token and rebuilds them.
 
 ---
 
-#### 🏁 Flag 30
+#### 🏁 Flag 35 - Where the Flow Is Removed
 
-- **Answer:** ``
-- **Discovery:** 
+IR LEAD: "That flow can't be removed from Sentinel or the Exchange rules. Where do you go to find and delete it."
 
-```kql
+Format: the admin console name
 
-```
-
-[image]
+- **Answer:** `Power Platform admin center`
+- **Discovery:** The flow is removed from the Power Platform admin center, which is the tenant-wide governance surface for Power Automate. Sentinel, Defender, Exchange admin center, and the maker portal cannot see or delete flows owned by another user.
 
 ---
 
-#### 🏁 Flag 31
+#### 🏁 Flag 36 - The Control That Never Fired
 
-- **Answer:** ``
-- **Discovery:** 
+IR LEAD: "A foreign single-factor sign-in should have been the easiest thing in the world for Conditional Access to stop. Go and check what Conditional Access actually did on these sign-ins, then tell me what you found and why that's how the session got through."
 
-```kql
+Format: short phrase (what CA did on these sign-ins, and why that let them in)
 
-```
-
-[image]
+- **Answer:** `CA didn't fire because the stolen token already satisfied both factors by claim, so no fresh challenge was issued and the foreign IP slipped through.`
 
 ---
 
-#### 🏁 Flag 32
+#### 🏁 Flag 37 - Why Revoke Before Reset
 
-- **Answer:** ``
-- **Discovery:** 
+IR LEAD: "Someone on the bridge wants to reset m.smith's password and call it done. You know better. Tell me why a password reset alone doesn't lock this attacker out, and what action has to come first."
 
-```kql
-
-```
-
-[image]
-
----
-
-#### 🏁 Flag 33
-
-- **Answer:** ``
-- **Discovery:** 
-
-```kql
-
-```
-
-[image]
-
----
-
-#### 🏁 Flag 34
-
-- **Answer:** ``
-- **Discovery:** 
-
-```kql
-
-```
-
-[image]
-
----
-
-#### 🏁 Flag 35
-
-- **Answer:** ``
-- **Discovery:** 
-
-```kql
-
-```
-
-[image]
-
----
-
-#### 🏁 Flag 36
-
-- **Answer:** ``
-- **Discovery:** 
-
-```kql
-
-```
-
-[image]
-
----
-
-#### 🏁 Flag 37
-
-- **Answer:** ``
-- **Discovery:** 
-
-```kql
-
-```
-
-[image]
+Format: short phrase (what survives a reset, and the action that kills it)
 
 
-
-
-
-
-
-
-
-## Detection Gaps & Recommendations
-
-### Observed Gaps
-
-- Entra ID Protection rated this incident Low based on the anonymous IP detection in isolation. The risk score did not update as the same session subsequently exhibited cross-application lateral movement, Graph reconnaissance, internal spearphishing, inbox rule creation, and credential file downloads.
-- MFA was enrolled on the account but did not enforce on the One Outlook Web sign-in path. Every successful authentication from the attacker IP completed as `singleFactorAuthentication`. This is a Conditional Access policy gap rather than an MFA bypass.
-- The historical pattern of `dismissed` risk states on this account lowered the analyst response signal. The night shift's verdict followed the path of least resistance because that path had been validated by repeated prior dismissals.
-- `New-InboxRule` operations did not trigger an alert, including the `Backup Copy` rule that forwards mail to an external `proton.me` address. External mail forwarding rule creation is a high-confidence persistence indicator and should not be silent.
-- A subject-line filter inbox rule named `Invoice Processing` that catches mail from a specific internal sender and routes it to a non-default folder is a strong fraud-concealment signature. No detection fired on the rule's logic, only on its existence in the audit trail.
-- Cross-channel reinforcement of a single request (email plus Teams to the same recipient inside a short window) was not correlated by any UEBA control. The two events lived in separate tables.
-- A file with `credentials` in its name was downloaded by a finance user during an actively flagged risk session. No DLP or naming-pattern detection fired.
-
-### Recommendations
-
-- Update Conditional Access to require MFA on all interactive sign-ins including legacy and web-only authentication paths. Block any sign-in that completes under `singleFactorAuthentication` for accounts with MFA enrolled.
-- Build a Sentinel analytic that escalates a risk event if the same `SessionId` or source IP subsequently performs any of: inbox rule creation, external mail forwarding, mass file access, or sign-in to more than three distinct applications.
-- Alert on `New-InboxRule` operations that contain an external recipient in the `ForwardTo` or `RedirectTo` parameters. Alert with higher severity when the rule includes `StopProcessingRules`.
-- Alert on inbox rules whose subject filters match payment or fraud keyword sets (`payment`, `banking`, `invoice`, `wire`, `ACH`, `vendor`).
-- Build a correlation rule that joins `EmailEvents` and `CloudAppEvents` to flag the same sender messaging the same recipient across both Outlook and Teams within a short window when the email contains payment-related content.
-- Alert on downloads of files whose names match credential indicators (`vpn`, `credential`, `password`, `secret`, `recovery`) from any user, with higher severity when the user is currently flagged in Entra ID Protection.
-- Review the `dismissed` risk state pattern on finance and other privileged users. Any account with three or more dismissed events in the prior 90 days should require Tier 2 sign-off on the next dismissal.
-
----
-
-## Final Assessment
-
-The Low severity verdict on Incident 87241 was incorrect. The flagged sign-in was the visible edge of a deliberate, cloud-native intrusion that progressed from initial access through reconnaissance, internal spearphishing, persistence, and targeted credential theft inside a single ten-hour window. The operator never touched an endpoint and never used malware. Everything they did was authorized by a valid token, which is precisely why the existing tooling underweighted it.
-
-**Attribution character.** The evidence supports a single, patient operator with prior knowledge of the environment. They knew which internal thread to mine for fraud credibility (four months old, accurate enough to use without modification). They profiled MFA posture before acting. They enumerated group memberships before sending the fraud request. They built persistence that targets one specific recipient with two complementary mechanisms (concealment plus exfiltration) rather than blanket forwarding. They downloaded a credential file that points to follow-on access outside Microsoft 365. None of those choices are improvised.
-
-**What is still acting with nobody online.** The two inbox rules continue to operate without any user session. `Backup Copy` silently forwards any reply from `j.reynolds@lognpacific.org` to `merovingian1337@proton.me`. `Invoice Processing` keeps those same replies out of Mark Smith's view. Until both rules are removed, the operator continues to receive the conversation while the compromised user cannot see it. Account disablement alone does not stop this; the rules must be explicitly deleted.
-
-**Response order.**
-
-1. Revoke all active sessions for `m.smith@lognpacific.org` and disable the account.
-2. Delete the `Backup Copy` and `Invoice Processing` inbox rules from Mark's mailbox immediately.
-3. Notify `j.reynolds@lognpacific.org` directly through a verified channel that the banking details request is fraudulent. Halt any pending payment changes against that request.
-4. Rotate every credential stored in `VPN-Access-Credentials.txt` and review VPN logs for any session originating from `103.69.224.136` or other anonymizing infrastructure.
-5. Block inbound and outbound mail flow with `merovingian1337@proton.me` at the gateway and add the address to threat intel watchlists.
-6. Audit the SharePoint credential store and confirm whether `yomark.pdf` or anything else under the same library should be removed or moved behind tighter access controls.
-7. Re-examine the Q1 vendor payment thread to determine how the operator gained visibility into it. Possible answers include earlier mailbox access, a different compromised account on the thread, or insider exposure. The four-month gap between the thread and the intrusion is the most important unresolved question coming out of this hunt.
-8. Sweep other finance and finance-adjacent accounts for the same pattern: `singleFactorAuthentication` successes, `New-InboxRule` events with external forwarding, and `dismissed` Entra ID Protection events in the prior 90 days.
-
----
-
-## Analyst Notes
-
-- Hunt scoped to a cloud-only intrusion across Microsoft 365 and Entra ID. No endpoint telemetry was in play.
-- Evidence was assembled by pivoting across `SigninLogs`, `AADUserRiskEvents`, `MicrosoftGraphActivityLogs`, `EmailEvents`, `OfficeActivity`, and `CloudAppEvents`. Schema discovery via `take 1` and `getschema` was used to map unfamiliar tables before querying.
-- All techniques mapped to MITRE ATT&CK Enterprise.
-- IR framework reference: NIST SP 800-61 (Computer Security Incident Handling Guide).
-- Report structured for interview and portfolio review.
-
----
+- **Answer:** `Tokens survive a password reset. Revoke sessions and refresh tokens first, then reset the password.`

@@ -70,7 +70,7 @@ This hunt re-examined the incident under the working hypothesis that the Low ver
 - **Answer:** `m.smith@lognpacific.org`
 - **Discovery:** Located in Defender XDR from the alert left in the queue by the night shift. The Evidence and Response pane on Incident 87241 named the principal and exposed the full identity context. The SAM Name in the user object resolves the UPN `m.smith` to **Mark Smith**, which is important context for later pivots where queries filter on the display name "mark" rather than the UPN.
 
-![Flag 1 - Compromised principal in Defender XDR](./screenshots/flag_1.png)
+![Flag 1 - Compromised principal in Defender XDR](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%201.png)
 
 ---
 
@@ -86,7 +86,7 @@ SigninLogs
 | project IPAddress
 ```
 
-![Flag 2 - Flagged source IP](./screenshots/flag_2.png)
+![Flag 2 - Flagged source IP](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%202.png)
 
 ---
 
@@ -101,7 +101,7 @@ SigninLogs
 | project DeviceDetail
 ```
 
-![Flag 3 - Client OS Linux](./screenshots/flag_3.png)
+![Flag 3 - Client OS Linux](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%203.png)
 
 ---
 
@@ -116,7 +116,7 @@ AADUserRiskEvents
 | project DetectedDateTime, UserPrincipalName, RiskEventType
 ```
 
-![Flag 4 - Stored detection type](./screenshots/flag_4.png)
+![Flag 4 - Stored detection type](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%204.png)
 
 ---
 
@@ -131,7 +131,7 @@ AADUserRiskEvents
 | summarize count() by RiskState
 ```
 
-![Flag 5 - Risk state summary](./screenshots/flag_5.png)
+![Flag 5 - Risk state summary](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%205.png)
 
 ---
 
@@ -140,7 +140,7 @@ AADUserRiskEvents
 - **Answer:** `Enabled`
 - **Discovery:** Confirmed the account's current status from the Assets pane within Incident 87241 in Defender XDR. The account is still Enabled at the time of triage, which means any active sessions or persistence established by the operator continue to act on a live identity.
 
-![Flag 6 - Account status enabled](./screenshots/flag_6.png)
+![Flag 6 - Account status enabled](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%206.png)
 
 ---
 
@@ -161,7 +161,7 @@ SigninLogs
 | project AuthenticationRequirement, AuthenticationMethodsUsed
 ```
 
-![Flag 7 - Single factor authentication path](./screenshots/flag_7.png)
+![Flag 7 - Single factor authentication path](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%207.png)
 
 ---
 
@@ -177,7 +177,7 @@ SigninLogs
 | order by TimeGenerated desc
 ```
 
-![Flag 8 - First successful login through One Outlook Web](./screenshots/flag_8.png)
+![Flag 8 - First successful login through One Outlook Web](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%208.png)
 
 ---
 
@@ -201,7 +201,7 @@ SigninLogs
 | count
 ```
 
-![Flag 9 - Two failed attempts before entry](./screenshots/flag_9.png)
+![Flag 9 - Two failed attempts before entry](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%209.png)
 
 ---
 
@@ -217,8 +217,6 @@ SigninLogs
 | where ResultSignature == 'SUCCESS'
 | summarize DistinctApps = dcount(AppDisplayName)
 ```
-
-![Flag 10 - Distinct apps reached](./screenshots/flag_10.png)
 
 ---
 
@@ -241,7 +239,7 @@ SigninLogs
 | order by DistinctApps desc
 ```
 
-![Flag 11 - Single session ID](./screenshots/flag_11.png)
+![Flag 11 - Single session ID](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%2011.png)
 
 ---
 
@@ -259,7 +257,7 @@ MicrosoftGraphActivityLogs
 | sort by TimeGenerated asc
 ```
 
-![Flag 12 - userRegistrationDetails reconnaissance](./screenshots/flag_12.png)
+![Flag 12 - userRegistrationDetails reconnaissance](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%2012.png)
 
 ---
 
@@ -275,7 +273,7 @@ MicrosoftGraphActivityLogs
 | sort by TimeGenerated asc
 ```
 
-![Flag 13 - Group enumeration via /me/memberOf](./screenshots/flag_13.png)
+![Flag 13 - Group enumeration via /me/memberOf](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%2013.png)
 
 ---
 
@@ -291,7 +289,7 @@ EmailEvents
 | where SenderDisplayName contains "smith"
 ```
 
-![Flag 14 - Fraudulent email subject line](./screenshots/flag_14.png)
+![Flag 14 - Fraudulent email subject line](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%2014.png)
 
 ---
 
@@ -307,7 +305,7 @@ EmailEvents
 | order by Timestamp desc
 ```
 
-![Flag 15 - Mined Q1 payment thread](./screenshots/flag_15.png)
+![Flag 15 - Mined Q1 payment thread](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%2015.png)
 
 ---
 
@@ -339,7 +337,7 @@ CloudAppEvents
 | project Application
 ```
 
-![Flag 17 - Teams reinforcement message](./screenshots/flag_17.png)
+![Flag 17 - Teams reinforcement message](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%2017.png)
 
 ---
 
@@ -363,7 +361,7 @@ OfficeActivity
 | project TimeGenerated, ClientIP, RuleName = ParamValue
 ```
 
-![Flag 18 - Invoice Processing rule creation](./screenshots/flag_18.png)
+![Flag 18 - Invoice Processing rule creation](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%2018.png)
 
 ---
 
@@ -371,6 +369,9 @@ OfficeActivity
 
 - **Answer:** Avoids deletion alerts and blends with normal mailbox activity. The ordinary folder name does not look suspicious to the user or to monitoring.
 - **Discovery:** Hard deletes trigger alerts in most monitored environments. `MailItemsAccessed`, `SoftDelete`, and `HardDelete` operations are watched by DLP and UEBA tooling, and deleted-item recovery is a routine forensic check. A move operation, by contrast, is treated as user filing behavior and rarely fires anything. Using a folder named to look like a finance workflow (`Invoice Processing`) means that even if Mark notices the folder, the name reads as routine.
+
+![Flag 19 ](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%2019.png)
+
 
 ---
 
@@ -429,7 +430,7 @@ OfficeActivity
 | where Operation contains "download"
 ```
 
-![Flag 24 - VPN credentials file downloaded](./screenshots/flag_24.png)
+![Flag 24 - VPN credentials file downloaded](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%2024.png)
 
 ---
 
@@ -444,7 +445,7 @@ OfficeActivity
 | where Operation == "FileAccessed"
 ```
 
-![Flag 25 - Credential store enumeration](./screenshots/flag_25.png)
+![Flag 25 - Credential store enumeration](https://github.com/goubx/threat-hunt-second-vector-brief/blob/main/screenshots/flag%2025.png)
 
 ---
 

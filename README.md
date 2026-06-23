@@ -1,3 +1,15 @@
+# Threat Hunt 08: Second Vector
+
+> Cloud-native identity compromise → internal spearphishing → silent exfiltration
+
+**Stack:** Microsoft Sentinel · Defender XDR · Entra ID · Microsoft 365 · Graph API · KQL
+
+**Techniques:** T1078.004 · T1090.003 · T1110.001 · T1087.004 · T1069.003 · T1534 · T1114.002 · T1114.003 · T1564.008 · T1530 · T1552.001 · T1083
+
+**Flags:** 25 across 6 investigative stages
+
+**Outcome:** Low-rated alert reclassified as confirmed targeted intrusion with active persistence
+
 # Threat Hunt Report: Second Vector
 
 **Hunt ID:** Hunt 08

@@ -1,10 +1,15 @@
 # Threat Hunt Report: Second Vector
 
 **Hunt ID:** Hunt 08
+
 **Date:** June 11, 2026
+
 **Organization:** LOG(N) Pacific
+
 **Analyst:** Mohamed Yagoub, T2 Threat Hunter
+
 **Incident Reference:** 87241 (Anonymous IP sign-in flagged on `m.smith`)
+
 **Investigation Window:** 2026-06-11 03:00 UTC to 2026-06-11 13:00 UTC
 
 ---

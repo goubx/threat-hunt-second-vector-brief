@@ -466,6 +466,168 @@ OfficeActivity
 
 ---
 
+#### 🏁 Flag 26 - Disprove the Innocent Explanation
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+---
+
+#### 🏁 Flag 27
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+---
+
+#### 🏁 Flag 28
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+---
+
+#### 🏁 Flag 29
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+---
+
+#### 🏁 Flag 30
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+---
+
+#### 🏁 Flag 31
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+---
+
+#### 🏁 Flag 32
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+---
+
+#### 🏁 Flag 33
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+---
+
+#### 🏁 Flag 34
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+---
+
+#### 🏁 Flag 35
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+---
+
+#### 🏁 Flag 36
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+---
+
+#### 🏁 Flag 37
+
+- **Answer:** ``
+- **Discovery:** 
+
+```kql
+
+```
+
+[image]
+
+
+
+
+
+
+
+
+
 ## Detection Gaps & Recommendations
 
 ### Observed Gaps
